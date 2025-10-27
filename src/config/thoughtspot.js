@@ -9,39 +9,102 @@ export const THOUGHTSPOT_CONFIG = {
   modelId: '0d5e909e-99ac-4484-b545-e277a82330ba'
 };
 
-// Initialize ThoughtSpot SDK
-export const initializeThoughtSpot = () => {
+let isInitialized = false;
+let isAuthenticating = false;
+let authPromise = null;
+
+// Login to ThoughtSpot and establish session
+const loginToThoughtSpot = async () => {
   try {
-    console.log('Initializing ThoughtSpot SDK with host:', THOUGHTSPOT_CONFIG.thoughtSpotHost);
-    init({
-      thoughtSpotHost: THOUGHTSPOT_CONFIG.thoughtSpotHost,
-      authType: AuthType.Basic,
-      username: THOUGHTSPOT_CONFIG.username,
-      password: THOUGHTSPOT_CONFIG.password,
+    console.log('Logging into ThoughtSpot with Basic Auth...');
+    const response = await fetch(`${THOUGHTSPOT_CONFIG.thoughtSpotHost}/callosum/v1/tspublic/v1/session/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+      },
+      credentials: 'include',
+      body: new URLSearchParams({
+        username: THOUGHTSPOT_CONFIG.username,
+        password: THOUGHTSPOT_CONFIG.password,
+      }),
     });
-    console.log('ThoughtSpot SDK initialized successfully');
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Login failed:', response.status, errorText);
+      throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+    }
+
+    console.log('Successfully logged into ThoughtSpot');
     return true;
   } catch (error) {
-    console.error('Failed to initialize ThoughtSpot SDK:', error);
-    return false;
+    console.error('Error during ThoughtSpot login:', error);
+    throw error;
   }
+};
+
+// Initialize ThoughtSpot SDK with proper authentication
+export const initializeThoughtSpot = async () => {
+  // If already initialized, return true
+  if (isInitialized) {
+    console.log('ThoughtSpot SDK already initialized');
+    return true;
+  }
+
+  // If currently authenticating, wait for that to complete
+  if (isAuthenticating && authPromise) {
+    console.log('Authentication in progress, waiting...');
+    return authPromise;
+  }
+
+  // Start authentication
+  isAuthenticating = true;
+  authPromise = (async () => {
+    try {
+      console.log('Initializing ThoughtSpot SDK with host:', THOUGHTSPOT_CONFIG.thoughtSpotHost);
+      
+      // Step 1: Login to establish session
+      await loginToThoughtSpot();
+      
+      // Step 2: Initialize SDK with AuthType.None (since we already have session)
+      init({
+        thoughtSpotHost: THOUGHTSPOT_CONFIG.thoughtSpotHost,
+        authType: AuthType.None,
+      });
+      
+      console.log('ThoughtSpot SDK initialized successfully');
+      isInitialized = true;
+      isAuthenticating = false;
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize ThoughtSpot SDK:', error);
+      isAuthenticating = false;
+      authPromise = null;
+      return false;
+    }
+  })();
+
+  return authPromise;
 };
 
 // Fetch user's reports from ThoughtSpot
 export const fetchUserReports = async () => {
   try {
+    // Ensure we're logged in first
+    await initializeThoughtSpot();
+    
     const baseUrl = THOUGHTSPOT_CONFIG.thoughtSpotHost;
-    const authHeader = 'Basic ' + btoa(`${THOUGHTSPOT_CONFIG.username}:${THOUGHTSPOT_CONFIG.password}`);
     
     // Fetch metadata for liveboards and answers created by or favorited by the user
+    // Using session-based auth (cookies) instead of Basic Auth header
     const response = await fetch(`${baseUrl}/api/rest/2.0/metadata/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': authHeader,
       },
-      credentials: 'include',
+      credentials: 'include', // Important: includes cookies for session auth
       body: JSON.stringify({
         metadata: [
           {

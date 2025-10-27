@@ -7,6 +7,7 @@ export const THOUGHTSPOT_CONFIG = {
   modelId: '0d5e909e-99ac-4484-b545-e277a82330ba'
 };
 
+<<<<<<< HEAD
 let isInitialized = false;
 
 // Get credentials from session storage
@@ -114,6 +115,31 @@ export const fetchUserReports = async () => {
     }
     
     const authHeader = 'Basic ' + btoa(`${username}:${password}`);
+=======
+// Initialize ThoughtSpot SDK
+export const initializeThoughtSpot = () => {
+  try {
+    console.log('Initializing ThoughtSpot SDK with host:', THOUGHTSPOT_CONFIG.thoughtSpotHost);
+    init({
+      thoughtSpotHost: THOUGHTSPOT_CONFIG.thoughtSpotHost,
+      authType: AuthType.Basic,
+      username: THOUGHTSPOT_CONFIG.username,
+      password: THOUGHTSPOT_CONFIG.password,
+    });
+    console.log('ThoughtSpot SDK initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize ThoughtSpot SDK:', error);
+    return false;
+  }
+};
+
+// Fetch user's reports from ThoughtSpot
+export const fetchUserReports = async () => {
+  try {
+    const baseUrl = THOUGHTSPOT_CONFIG.thoughtSpotHost;
+    const authHeader = 'Basic ' + btoa(`${THOUGHTSPOT_CONFIG.username}:${THOUGHTSPOT_CONFIG.password}`);
+>>>>>>> parent of ac98ca3 (updated credentials)
     
     // Fetch metadata for liveboards and answers created by or favorited by the user
     const response = await fetch(`${baseUrl}/api/rest/2.0/metadata/search`, {

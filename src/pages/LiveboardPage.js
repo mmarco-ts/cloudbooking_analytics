@@ -35,22 +35,14 @@ const LiveboardPage = () => {
         setLoading(true);
         setError(null);
 
-<<<<<<< HEAD
-        // Initialize ThoughtSpot SDK with Basic Auth
-        console.log('Initializing ThoughtSpot...');
-=======
         // Initialize ThoughtSpot SDK
->>>>>>> parent of ac98ca3 (updated credentials)
+        console.log('Initializing ThoughtSpot...');
         const initialized = initializeThoughtSpot();
         if (!initialized) {
           throw new Error('Failed to initialize ThoughtSpot SDK');
         }
 
-<<<<<<< HEAD
         // Delay to ensure SDK is fully ready and authentication completes
-=======
-        // Extended delay to ensure SDK and authentication are ready
->>>>>>> parent of ac98ca3 (updated credentials)
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Clear any existing content

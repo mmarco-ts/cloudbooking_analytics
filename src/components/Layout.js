@@ -3,12 +3,16 @@ import { Link, useLocation } from 'react-router-dom';
 import ChatBubble from './ChatBubble';
 import { fetchUserReports } from '../config/thoughtspot';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, onLogout }) => {
   const location = useLocation();
   const [showReportsMenu, setShowReportsMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [myReports, setMyReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [reportsError, setReportsError] = useState(null);
+
+  // Get current username
+  const username = sessionStorage.getItem('ts_username') || 'User';
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -129,6 +133,40 @@ const Layout = ({ children }) => {
               </li>
             </ul>
           </nav>
+          
+          {/* User Menu */}
+          <div className="user-menu-container">
+            <button 
+              className="user-menu-button"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              onBlur={() => setTimeout(() => setShowUserMenu(false), 200)}
+            >
+              <span className="user-avatar">
+                {username.charAt(0).toUpperCase()}
+              </span>
+              <span className="user-name">{username}</span>
+              <span className="dropdown-arrow">{showUserMenu ? '▲' : '▼'}</span>
+            </button>
+            
+            {showUserMenu && (
+              <div className="user-dropdown">
+                <div className="user-dropdown-header">
+                  <div className="user-avatar-large">
+                    {username.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="user-info">
+                    <div className="user-name-large">{username}</div>
+                    <div className="user-role">Analytics User</div>
+                  </div>
+                </div>
+                <div className="user-dropdown-divider"></div>
+                <button className="user-dropdown-item" onClick={onLogout}>
+                  <span className="dropdown-icon">🚪</span>
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
       <main className="main-content">

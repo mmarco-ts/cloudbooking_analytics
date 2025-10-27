@@ -35,16 +35,15 @@ const LiveboardPage = () => {
         setLoading(true);
         setError(null);
 
-        // Initialize ThoughtSpot SDK and login
+        // Initialize ThoughtSpot SDK with Basic Auth
         console.log('Initializing ThoughtSpot...');
-        const initialized = await initializeThoughtSpot();
+        const initialized = initializeThoughtSpot();
         if (!initialized) {
           throw new Error('Failed to initialize ThoughtSpot SDK');
         }
-        console.log('ThoughtSpot initialized, ready to embed');
 
-        // Small delay to ensure SDK is fully ready
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Delay to ensure SDK is fully ready and authentication completes
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Clear any existing content
         if (embedRef.current) {

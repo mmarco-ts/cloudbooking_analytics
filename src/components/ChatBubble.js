@@ -61,16 +61,15 @@ const ChatBubble = () => {
         }
       }
 
-      // Initialize ThoughtSpot SDK and login if not already initialized
+      // Initialize ThoughtSpot SDK with Basic Auth if not already initialized
       console.log('Initializing ThoughtSpot for ChatBubble...');
-      const initialized = await initializeThoughtSpot();
+      const initialized = initializeThoughtSpot();
       if (!initialized) {
         throw new Error('Failed to initialize ThoughtSpot SDK');
       }
-      console.log('ThoughtSpot initialized for ChatBubble');
 
-      // Small delay to ensure SDK is ready
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Delay to ensure SDK is ready and authentication completes
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       if (embedRef.current) {
         embedRef.current.innerHTML = '';

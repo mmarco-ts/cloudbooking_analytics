@@ -13,16 +13,15 @@ const SpotterPage = () => {
         setLoading(true);
         setError(null);
 
-        // Initialize ThoughtSpot SDK and login
+        // Initialize ThoughtSpot SDK with Basic Auth
         console.log('Initializing ThoughtSpot for Spotter...');
-        const initialized = await initializeThoughtSpot();
+        const initialized = initializeThoughtSpot();
         if (!initialized) {
           throw new Error('Failed to initialize ThoughtSpot SDK');
         }
-        console.log('ThoughtSpot initialized, ready to embed Spotter');
 
-        // Small delay to ensure SDK is ready
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Delay to ensure SDK is ready and authentication completes
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
         // Create and render the Spotter embed
         const spotterEmbed = new SpotterEmbed(embedRef.current, {

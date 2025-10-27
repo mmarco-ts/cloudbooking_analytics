@@ -3,108 +3,127 @@ import { init, AuthType } from '@thoughtspot/visual-embed-sdk';
 // ThoughtSpot configuration
 export const THOUGHTSPOT_CONFIG = {
   thoughtSpotHost: 'https://analytics-cloudbooking.thoughtspot.cloud',
-  username: 'tsadmin',
-  password: 'TSCloud123!',
   liveboardId: '7d749892-4fb3-4a69-8566-6537fdfa6c46',
   modelId: '0d5e909e-99ac-4484-b545-e277a82330ba'
 };
 
 let isInitialized = false;
-let isAuthenticating = false;
-let authPromise = null;
 
-// Login to ThoughtSpot and establish session
-const loginToThoughtSpot = async () => {
-  try {
-    console.log('Logging into ThoughtSpot with Basic Auth...');
-    const response = await fetch(`${THOUGHTSPOT_CONFIG.thoughtSpotHost}/callosum/v1/tspublic/v1/session/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: new URLSearchParams({
-        username: THOUGHTSPOT_CONFIG.username,
-        password: THOUGHTSPOT_CONFIG.password,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Login failed:', response.status, errorText);
-      throw new Error(`Login failed: ${response.status} ${response.statusText}`);
-    }
-
-    console.log('Successfully logged into ThoughtSpot');
-    return true;
-  } catch (error) {
-    console.error('Error during ThoughtSpot login:', error);
-    throw error;
-  }
+// Get credentials from session storage
+const getCredentials = () => {
+  return {
+    username: sessionStorage.getItem('ts_username'),
+    password: sessionStorage.getItem('ts_password')
+  };
 };
 
-// Initialize ThoughtSpot SDK with proper authentication
-export const initializeThoughtSpot = async () => {
+// Initialize ThoughtSpot SDK with credentials from session
+export const initializeThoughtSpot = () => {
   // If already initialized, return true
   if (isInitialized) {
     console.log('ThoughtSpot SDK already initialized');
     return true;
   }
 
-  // If currently authenticating, wait for that to complete
-  if (isAuthenticating && authPromise) {
-    console.log('Authentication in progress, waiting...');
-    return authPromise;
+  const { username, password } = getCredentials();
+  
+  if (!username || !password) {
+    console.error('No credentials found in session');
+    return false;
   }
 
-  // Start authentication
-  isAuthenticating = true;
-  authPromise = (async () => {
-    try {
-      console.log('Initializing ThoughtSpot SDK with host:', THOUGHTSPOT_CONFIG.thoughtSpotHost);
-      
-      // Step 1: Login to establish session
-      await loginToThoughtSpot();
-      
-      // Step 2: Initialize SDK with AuthType.None (since we already have session)
-      init({
-        thoughtSpotHost: THOUGHTSPOT_CONFIG.thoughtSpotHost,
-        authType: AuthType.None,
-      });
-      
-      console.log('ThoughtSpot SDK initialized successfully');
-      isInitialized = true;
-      isAuthenticating = false;
-      return true;
-    } catch (error) {
-      console.error('Failed to initialize ThoughtSpot SDK:', error);
-      isAuthenticating = false;
-      authPromise = null;
-      return false;
-    }
-  })();
+  try {
+    console.log('Initializing ThoughtSpot SDK with host:', THOUGHTSPOT_CONFIG.thoughtSpotHost);
+    console.log('Using Basic Auth with username:', username);
+    
+    init({
+      thoughtSpotHost: THOUGHTSPOT_CONFIG.thoughtSpotHost,
+      authType: AuthType.Basic,
+      username: username,
+      password: password,
+      // Disable SSO redirect to use Basic Auth
+      disableLoginRedirect: true,
+      // Auto-login without showing login page
+      autoLogin: true,
+    });
+    
+    console.log('ThoughtSpot SDK initialized successfully with Basic Auth');
+    isInitialized = true;
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize ThoughtSpot SDK:', error);
+    return false;
+  }
+};
 
-  return authPromise;
+// Initialize ThoughtSpot with specific credentials (used during login)
+export const initializeThoughtSpotWithCredentials = async (username, password) => {
+  try {
+    console.log('Testing credentials with ThoughtSpot...');
+    
+    // Test the credentials by attempting to fetch session info
+    const response = await fetch(`${THOUGHTSPOT_CONFIG.thoughtSpotHost}/callosum/v1/tspublic/v1/session/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      credentials: 'include',
+      body: new URLSearchParams({
+        username: username,
+        password: password,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Login failed:', response.status);
+      throw new Error('Invalid credentials');
+    }
+
+    console.log('Credentials validated successfully');
+    
+    // Initialize the SDK
+    init({
+      thoughtSpotHost: THOUGHTSPOT_CONFIG.thoughtSpotHost,
+      authType: AuthType.Basic,
+      username: username,
+      password: password,
+      disableLoginRedirect: true,
+      autoLogin: true,
+    });
+    
+    isInitialized = true;
+    return true;
+  } catch (error) {
+    console.error('Authentication failed:', error);
+    throw error;
+  }
 };
 
 // Fetch user's reports from ThoughtSpot
 export const fetchUserReports = async () => {
   try {
-    // Ensure we're logged in first
-    await initializeThoughtSpot();
+    // Ensure SDK is initialized
+    initializeThoughtSpot();
     
     const baseUrl = THOUGHTSPOT_CONFIG.thoughtSpotHost;
+    const { username, password } = getCredentials();
+    
+    if (!username || !password) {
+      console.error('No credentials available for API call');
+      return getSampleReports();
+    }
+    
+    const authHeader = 'Basic ' + btoa(`${username}:${password}`);
     
     // Fetch metadata for liveboards and answers created by or favorited by the user
-    // Using session-based auth (cookies) instead of Basic Auth header
     const response = await fetch(`${baseUrl}/api/rest/2.0/metadata/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Authorization': authHeader,
       },
-      credentials: 'include', // Important: includes cookies for session auth
+      credentials: 'include',
       body: JSON.stringify({
         metadata: [
           {
